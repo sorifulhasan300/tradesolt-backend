@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import { StatusCodes } from 'http-status-codes';
 import ApiError from '../errors/ApiError.js';
 
 export interface IGenericErrorMessage {
@@ -16,7 +17,7 @@ export const globalErrorHandler: ErrorRequestHandler = (
   res: Response,
   next: NextFunction
 ): void => {
-  let statusCode = 500;
+  let statusCode: number = StatusCodes.INTERNAL_SERVER_ERROR;
   let message = 'Something went wrong!';
   let errorMessages: IGenericErrorMessage[] = [];
 
@@ -34,7 +35,7 @@ export const globalErrorHandler: ErrorRequestHandler = (
   } else if (err?.name === 'PrismaClientKnownRequestError') {
     // Handle Prisma known request errors
     if (err.code === 'P2002') {
-      statusCode = 409;
+      statusCode = StatusCodes.CONFLICT;
       message = 'Duplicate field value entered (Unique constraint failure)';
       const target = Array.isArray(err.meta?.target) ? err.meta.target.join(', ') : err.meta?.target || 'field';
       errorMessages = [
@@ -44,7 +45,7 @@ export const globalErrorHandler: ErrorRequestHandler = (
         },
       ];
     } else if (err.code === 'P2025') {
-      statusCode = 404;
+      statusCode = StatusCodes.NOT_FOUND;
       message = 'Record not found';
       errorMessages = [
         {
@@ -53,7 +54,7 @@ export const globalErrorHandler: ErrorRequestHandler = (
         },
       ];
     } else {
-      statusCode = 400;
+      statusCode = StatusCodes.BAD_REQUEST;
       message = err.message;
       errorMessages = [
         {

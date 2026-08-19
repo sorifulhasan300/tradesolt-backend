@@ -1,6 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { StatusCodes } from 'http-status-codes';
 import apiRoutes from './routes/api.routes.js';
 import notFoundHandler from './middleware/notFound.js';
 import globalErrorHandler from './middleware/globalErrorHandler.js';
@@ -17,7 +18,7 @@ app.use(express.json());
 
 // Health Check Endpoint
 app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({
+  res.status(StatusCodes.OK).json({
     status: 'OK',
     message: 'TradeSlot Backend API Running',
   });

@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
+import { StatusCodes } from 'http-status-codes';
+
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction): void => {
-  res.status(404).json({
+  res.status(StatusCodes.NOT_FOUND).json({
     success: false,
-    statusCode: 404,
+    statusCode: StatusCodes.NOT_FOUND,
     message: 'API Not Found',
     errorMessages: [
       {
