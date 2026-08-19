@@ -5,6 +5,7 @@ import { StatusCodes } from 'http-status-codes';
 import apiRoutes from './routes/api.routes.js';
 import notFoundHandler from './middleware/notFound.js';
 import globalErrorHandler from './middleware/globalErrorHandler.js';
+import auditFailureLogger from './middleware/auditLogger.js';
 
 // Load environment variables
 dotenv.config();
@@ -15,6 +16,7 @@ const PORT: string | number = process.env.PORT || 5000;
 // Global Middleware
 app.use(cors());
 app.use(express.json());
+app.use(auditFailureLogger);
 
 // Health Check Endpoint
 app.get('/health', (req: Request, res: Response) => {
