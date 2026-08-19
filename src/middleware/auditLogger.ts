@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 
 interface IAuditLogPayload {
+  level: "warn" | "error";
   timestamp: string;
   method: string;
   url: string;
@@ -48,9 +49,13 @@ export const auditFailureLogger = (
   res.on("finish", () => {
     const statusCode = res.statusCode;
 
+    // Audit log HTTP failures (Client Errors 4xx & Server Errors 5xx)
     if (statusCode >= 400) {
       const durationMs = Date.now() - startTime;
+      const isProduction = process.env.NODE_ENV === "production";
+
       const logPayload: IAuditLogPayload = {
+        level: statusCode >= 500 ? "error" : "warn",
         timestamp: new Date().toISOString(),
         method: req.method,
         url: req.originalUrl || req.url,
@@ -62,10 +67,16 @@ export const auditFailureLogger = (
         body: sanitizePayload(req.body),
       };
 
-      console.error(
-        `[AUDIT FAILURE LOG] [${logPayload.timestamp}] ${logPayload.method} ${logPayload.url} -> Status: ${logPayload.statusCode} (${logPayload.durationMs}ms)`,
-      );
-      console.error(`   Details:`, JSON.stringify(logPayload, null, 2));
+      if (isProduction) {
+        // Single-line JSON stream for Cloud/Production Log Aggregators
+        console.error(JSON.stringify(logPayload));
+      } else {
+        // Pretty-printed output for Local Development
+        console.error(
+          `[AUDIT FAILURE LOG] [${logPayload.timestamp}] ${logPayload.method} ${logPayload.url} -> Status: ${logPayload.statusCode} (${logPayload.durationMs}ms)`,
+        );
+        console.error(`   Details:`, JSON.stringify(logPayload, null, 2));
+      }
     }
   });
 
