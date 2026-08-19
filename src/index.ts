@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import apiRoutes from './routes/api.routes.js';
 import notFoundHandler from './middleware/notFound.js';
+import globalErrorHandler from './middleware/globalErrorHandler.js';
 
 // Load environment variables
 dotenv.config();
@@ -27,6 +28,9 @@ app.use('/api/v1', apiRoutes);
 
 // Global Not Found Handler
 app.use(notFoundHandler);
+
+// Global Error Handler (must be registered last)
+app.use(globalErrorHandler);
 
 // Server Startup
 app.listen(PORT, () => {
