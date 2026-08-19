@@ -6,3 +6,5 @@ node_modules
 .agents
 
 dist/
+src/generated/prisma    
+prisma/migrations

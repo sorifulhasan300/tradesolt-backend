@@ -1,0 +1,68 @@
+// ============================================================
+// prisma/models/user.prisma
+// Core identity models: Business, User, TraderProfile.
+//
+// Architecture notes
+// ------------------
+// • Business  — optional parent entity for multi-trader orgs.
+//               Traders can exist independently (businessId nullable).
+// • User      — single auth identity; role controls access level.
+// • TraderProfile — extends User for traders; holds Stripe Connect
+//               account ID for marketplace payouts.
+// ============================================================
+
+/// An organisation that owns one or more trader accounts.
+/// Supports future multi-trader / franchise expansion.
+model Business {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Traders who belong to this business
+  traders TraderProfile[]
+
+  @@map("businesses")
+}
+
+/// Core user account. One row per unique authenticated identity.
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  phone     String?  @unique
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Present when role == TRADER
+  traderProfile TraderProfile?
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
+/// Extended profile for traders.
+/// Linked 1-to-1 with User and optionally to a Business.
+model TraderProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  businessId       String?
+  /// Stripe Connect Express/Standard account ID for marketplace payouts
+  stripeAccountId  String?   @unique
+  displayName      String
+  bio              String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  /// Bookings where this trader is the assigned professional
+  bookings     Booking[]
+  /// Daily work areas declared by this trader
+  dailyWorkAreas DailyWorkArea[]
+
+  @@index([businessId])
+  @@map("trader_profiles")
+}

@@ -1,0 +1,58 @@
+// ============================================================
+// prisma/models/booking.prisma
+// The core transactional record for every trade job.
+//
+// Architecture notes
+// ------------------
+// • Customer details are denormalised (name, phone, email)
+//   so the record is self-contained for invoicing / receipts
+//   even if the customer account is later deleted.
+// • originChannel links back to the intake channel so we can
+//   attribute conversion metrics per channel.
+// • bufferMinutes defaults to 30 — the travel/prep buffer
+//   inserted between consecutive jobs on the trader's calendar.
+//   Override per-booking for long-distance or complex jobs.
+// • Financials are stored as Int (pence/cents) to avoid
+//   floating-point rounding issues. Convert to decimals in
+//   the application layer when displaying to end-users.
+
+model Booking {
+  id            String               @id @default(cuid())
+
+  // ---- Trader ------------------------------------------------
+  traderId      String
+
+  // ---- Customer (denormalised for receipt durability) --------
+  customerName  String
+  customerPhone String
+  customerEmail String?
+
+  // ---- Channel & Scheduling ----------------------------------
+  originChannel CommunicationChannel
+  status        BookingStatus        @default(PENDING)
+  startTime     DateTime
+  endTime       DateTime
+  /// Travel / preparation buffer added AFTER endTime (minutes)
+  bufferMinutes Int                  @default(30)
+
+  // ---- Financials (stored in smallest currency unit, e.g. pence) --
+  /// Fixed booking/callout fee charged regardless of job duration
+  flatBookingFee  Int                @default(0)
+  /// Variable labour/materials cost agreed with customer
+  jobAmount       Int                @default(0)
+  /// flatBookingFee + jobAmount; denormalised for fast reporting
+  totalAmount     Int                @default(0)
+
+  // ---- Timestamps -------------------------------------------
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trader   TraderProfile    @relation(fields: [traderId], references: [id], onDelete: Restrict)
+  payment  Payment?
+  messages ChannelMessage[]
+
+  @@index([traderId, startTime])
+  @@index([status])
+  @@index([originChannel])
+  @@map("bookings")
+}

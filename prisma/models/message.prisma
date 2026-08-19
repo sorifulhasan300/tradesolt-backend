@@ -1,0 +1,34 @@
+// ============================================================
+// prisma/models/message.prisma
+// Inbound messages received from any intake channel.
+//
+// Architecture notes
+// ------------------
+// • rawPayload stores the verbatim webhook body so we can
+//   replay / re-parse without data loss if business logic
+//   evolves (e.g. new WhatsApp template fields).
+// • bookingId is nullable: messages arrive before a booking
+//   exists and are linked once a booking is created.
+// • externalSenderId is the channel-specific identifier
+//   (WhatsApp phone, Telegram user_id, etc.).
+// ============================================================
+
+model ChannelMessage {
+  id               String               @id @default(cuid())
+  channel          CommunicationChannel
+  /// Channel-specific sender identity (phone number, telegram id, etc.)
+  externalSenderId String
+  /// Processed/normalised message text
+  messageContent   String               @db.Text
+  /// Raw webhook payload preserved verbatim for auditability & replay
+  rawPayload       Json
+  /// Linked once a booking is extracted from this message thread
+  bookingId        String?
+  createdAt        DateTime             @default(now())
+
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([channel, externalSenderId])
+  @@index([bookingId])
+  @@map("channel_messages")
+}

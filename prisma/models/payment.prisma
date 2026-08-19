@@ -1,0 +1,40 @@
+// ============================================================
+// prisma/models/payment.prisma
+// Stripe Connect payment record linked 1-to-1 with a Booking.
+//
+// Architecture notes
+// ------------------
+// • One Booking → one Payment. The 1-to-1 constraint is
+//   enforced via @unique on bookingId.
+// • All monetary fields are Int (pence/cents).
+// • platformFee  — amount TradeSlot retains (application fee).
+// • traderPayoutAmount — net amount transferred to the trader's
+//   Stripe Connect account after the platform fee.
+// • stripePaymentIntentId is @unique so we can safely handle
+//   duplicate Stripe webhook deliveries idempotently.
+// ============================================================
+
+model Payment {
+  id                     String        @id @default(cuid())
+  bookingId              String        @unique
+  /// Stripe PaymentIntent ID — used for idempotent webhook handling
+  stripePaymentIntentId  String        @unique
+  /// Total charged to the customer (pence/cents)
+  amountTotal            Int
+  /// TradeSlot's application fee (pence/cents)
+  platformFee            Int
+  /// Net amount paid out to trader's Stripe Connect account
+  traderPayoutAmount     Int
+  status                 PaymentStatus @default(PENDING)
+  /// Optional: Stripe Transfer ID once payout is created
+  stripeTransferId       String?       @unique
+  /// Optional: Stripe Charge ID for receipt/refund references
+  stripeChargeId         String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@map("payments")
+}

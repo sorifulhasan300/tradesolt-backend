@@ -1,0 +1,33 @@
+// ============================================================
+// prisma/models/workArea.prisma
+// Geographic availability declared by a trader per day.
+//
+// Architecture notes
+// ------------------
+// • One row = one trader + one calendar date + one work zone.
+// • The unique compound constraint (traderId, date) ensures a
+//   trader cannot declare two overlapping zones on the same day
+//   via the ORM layer; business logic can relax this if needed.
+// • @db.Date stores only the date part (no time component)
+//   so zone lookups are simple equality comparisons.
+// ============================================================
+
+model DailyWorkArea {
+  id        String   @id @default(cuid())
+  traderId  String
+  /// Calendar date the trader will work in this zone (date only, no time)
+  date      DateTime @db.Date
+  /// Human-readable zone name, e.g. "East London EC1" or postcode prefix
+  zoneName  String
+  /// Optional GeoJSON or WKT geometry for precise boundary (nullable for MVP)
+  geometry  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trader TraderProfile @relation(fields: [traderId], references: [id], onDelete: Cascade)
+
+  /// A trader may only declare one zone per date
+  @@unique([traderId, date])
+  @@index([date])
+  @@map("daily_work_areas")
+}

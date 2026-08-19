@@ -1,0 +1,50 @@
+// ============================================================
+// prisma/models/enums.prisma
+// Centralised enum definitions for the TradeSlot platform.
+// Keep all enums here so they are trivially discoverable and
+// can be referenced by any model file in this folder.
+// ============================================================
+
+// --------------- Identity & Access -------------------------
+
+/// Platform-level roles assigned to every user account.
+enum Role {
+  CUSTOMER       // End-customer booking a trade service
+  TRADER         // Individual tradesperson accepting bookings
+  BUSINESS_ADMIN // Admin of a multi-trader business account
+  PLATFORM_ADMIN // TradeSlot super-admin
+}
+
+// --------------- Booking Lifecycle -------------------------
+
+/// State machine for a booking from creation to completion.
+enum BookingStatus {
+  PENDING     // Created; awaiting trader confirmation
+  CONFIRMED   // Trader confirmed; payment authorised
+  IN_PROGRESS // Job has started (trader checked in)
+  COMPLETED   // Job finished; funds captured
+  CANCELLED   // Cancelled by either party
+}
+
+// --------------- Intake Channels ---------------------------
+
+/// All intake channels through which a customer can reach a trader.
+/// New channels can be added here without touching booking logic.
+enum CommunicationChannel {
+  WHATSAPP
+  WEB_CHAT
+  SMS
+  TELEGRAM
+  EMAIL
+  VOICE
+}
+
+// --------------- Payments ----------------------------------
+
+/// Lifecycle states for a Stripe payment intent.
+enum PaymentStatus {
+  PENDING   // Intent created; not yet captured
+  SUCCEEDED // Funds captured successfully
+  FAILED    // Charge failed (insufficient funds, etc.)
+  REFUNDED  // Full or partial refund issued
+}
