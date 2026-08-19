@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import apiRoutes from './routes/api.routes.js';
+import notFoundHandler from './middleware/notFound.js';
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,9 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Route Mounts
 app.use('/api/v1', apiRoutes);
+
+// Global Not Found Handler
+app.use(notFoundHandler);
 
 // Server Startup
 app.listen(PORT, () => {
