@@ -32,7 +32,8 @@
     "http-status-codes": "^2.3.0",
     "pg": "^8.23.0",
     "stripe": "^22.5.0",
-    "svix": "^1.63.0"
+    "svix": "^1.63.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@better-auth/cli": "^1.4.21",

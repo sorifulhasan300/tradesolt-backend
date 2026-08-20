@@ -9,11 +9,10 @@ import notFoundHandler from "./middleware/notFound.js";
 import globalErrorHandler from "./middleware/globalErrorHandler.js";
 import auditFailureLogger from "./middleware/auditLogger.js";
 
-// Load environment variables
-dotenv.config();
+import envVars from "./config/env.config.js";
 
 const app: Application = express();
-const PORT: string | number = process.env.PORT || 5000;
+const PORT = envVars.PORT;
 
 // Global Middleware
 app.use(cors());

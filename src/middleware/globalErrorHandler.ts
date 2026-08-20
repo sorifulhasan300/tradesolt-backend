@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import { StatusCodes } from 'http-status-codes';
+import { ZodError } from 'zod';
 import ApiError from '../errors/ApiError.js';
 
 export interface IGenericErrorMessage {
@@ -7,10 +8,6 @@ export interface IGenericErrorMessage {
   message: string;
 }
 
-/**
- * Global Error Handler Middleware
- * Catches all uncaught operational and system errors across the application.
- */
 export const globalErrorHandler: ErrorRequestHandler = (
   err: any,
   req: Request,
@@ -21,7 +18,14 @@ export const globalErrorHandler: ErrorRequestHandler = (
   let message = 'Something went wrong!';
   let errorMessages: IGenericErrorMessage[] = [];
 
-  if (err instanceof ApiError) {
+  if (err instanceof ZodError) {
+    statusCode = StatusCodes.BAD_REQUEST;
+    message = 'Validation Error';
+    errorMessages = err.issues.map((issue) => ({
+      path: issue.path.join('.') || req.originalUrl,
+      message: issue.message,
+    }));
+  } else if (err instanceof ApiError) {
     statusCode = err.statusCode;
     message = err.message;
     errorMessages = err?.message
