@@ -1,8 +1,9 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { bearer } from 'better-auth/plugins';
+import { bearer, emailOTP } from 'better-auth/plugins';
 import prisma from './prisma.js';
 import envVars from '../config/env.config.js';
+import { sendVerificationOtpEmail } from '../utils/sendEmail.js';
 
 export const auth = betterAuth({
   baseURL: envVars.BETTER_AUTH_URL,
@@ -13,9 +14,19 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: true,
   },
   plugins: [
     bearer(),
+    emailOTP({
+      sendVerificationOnSignUp: true,
+      overrideDefaultEmailVerification: true,
+      expiresIn: 300, // 5 minutes expiry
+      generateOTP: () => Math.floor(100000 + Math.random() * 900000).toString(),
+      async sendVerificationOTP({ email, otp }, _request) {
+        await sendVerificationOtpEmail(email, otp);
+      },
+    }),
   ],
   user: {
     additionalFields: {

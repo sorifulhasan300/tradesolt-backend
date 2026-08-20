@@ -28,6 +28,11 @@ export const envSchema = z.object({
   BACKEND_URL: z
     .string({ message: 'BACKEND_URL is required' })
     .url('BACKEND_URL must be a valid URL'),
+  EMAIL_USER: z.string().optional().default(''),
+  EMAIL_PASS: z.string().optional().default(''),
+  EMAIL_HOST: z.string().optional().default('smtp.gmail.com'),
+  EMAIL_PORT: z.coerce.number().optional().default(587),
+  EMAIL_FROM: z.string().optional().default('TradeSlot <no-reply@tradeslot.com>'),
 });
 
 

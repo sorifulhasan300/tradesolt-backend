@@ -1,23 +1,25 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, RequestHandler, Response } from "express";
 import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "@/lib/auth.js";
-import { UserRoles } from "@/types/role.types.js";
+import { auth } from "../lib/auth.js";
+import { UserRoles } from "../types/role.types.js";
 
-export const checkAuth = (...roles: UserRoles[]) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+export const checkAuth = (...roles: UserRoles[]): RequestHandler => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const hasToken = req.headers.cookie || req.headers.authorization;
     if (!hasToken) {
-      return res
+      res
         .status(401)
         .json({ message: "you are not authenticate for access this route" });
+      return;
     }
     const session = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
     });
     if (!session) {
-      return res
+      res
         .status(401)
         .json({ message: "you are not authenticate for access this route" });
+      return;
     }
     req.user = {
       id: session.user.id,
@@ -27,8 +29,12 @@ export const checkAuth = (...roles: UserRoles[]) => {
       emailVerified: session.user.emailVerified,
     };
     if (roles.length && !roles.includes(req.user.role as UserRoles)) {
-      return res.status(403).json({ message: "Forbidden access" });
+      res.status(403).json({ message: "Forbidden access" });
+      return;
     }
     next();
   };
 };
+
+
+

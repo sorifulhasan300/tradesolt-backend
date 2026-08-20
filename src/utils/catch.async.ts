@@ -1,16 +1,9 @@
-class AppError extends Error {
-  public statusCode: number;
+import { NextFunction, Request, RequestHandler, Response } from "express";
 
-  constructor(statusCode: number, message: string | undefined, stack = "") {
-    super(message);
-    this.statusCode = statusCode;
+const catchAsync = (fn: RequestHandler) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    Promise.resolve(fn(req, res, next)).catch((err) => next(err));
+  };
+};
 
-    if (stack) {
-      this.stack = stack;
-    } else {
-      Error.captureStackTrace(this, this.constructor);
-    }
-  }
-}
-
-export default AppError;
+export default catchAsync;
