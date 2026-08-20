@@ -1,13 +1,11 @@
-import * as express from "express";
+import * as express from 'express';
+import { User, Session } from 'better-auth/types';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        id: string;
-        email: string;
-        isEmailVerified: boolean;
-      };
+      user?: User;
+      session?: Session;
     }
   }
 }
