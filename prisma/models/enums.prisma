@@ -22,6 +22,7 @@ enum BookingStatus {
 enum CommunicationChannel {
   WHATSAPP
   WEB_CHAT
+  WEB_CHATBOT
   SMS
   TELEGRAM
   EMAIL

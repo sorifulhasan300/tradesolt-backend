@@ -4,8 +4,13 @@ import { auth } from "../lib/auth.js";
 import { UserRoles } from "../types/role.types.js";
 
 export const checkAuth = (...roles: UserRoles[]): RequestHandler => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     const hasToken = req.headers.cookie || req.headers.authorization;
+
     if (!hasToken) {
       res
         .status(401)
@@ -35,6 +40,3 @@ export const checkAuth = (...roles: UserRoles[]): RequestHandler => {
     next();
   };
 };
-
-
-
