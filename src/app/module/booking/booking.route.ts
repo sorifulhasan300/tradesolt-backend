@@ -18,6 +18,12 @@ router.post(
 );
 
 router.get(
+  '/',
+  checkAuth(),
+  bookingController.getAllBookings,
+);
+
+router.get(
   '/trader/:traderId',
   checkAuth(UserRoles.TRADER, UserRoles.PLATFORM_ADMIN),
   bookingController.getTraderBookings,

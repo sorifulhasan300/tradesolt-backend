@@ -30,9 +30,22 @@ const verifyEmail = catchAsync(async (req: Request, res: Response): Promise<void
   });
 });
 
+const getAllTraders = catchAsync(async (req: Request, res: Response): Promise<void> => {
+  const result = await authService.getAllTradersFromDB(req.query);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Traders fetched successfully',
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
 export const authController = {
   resendOtp,
   verifyEmail,
+  getAllTraders,
 };
 
 export default authController;

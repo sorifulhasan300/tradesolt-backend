@@ -22,6 +22,13 @@ router.post(
   paymentController.createPaymentIntent,
 );
 
+// GET /api/v1/payments — Fetch paginated list of payments (for traders or admins)
+router.get(
+  '/',
+  checkAuth(),
+  paymentController.getAllPayments,
+);
+
 // GET /api/v1/payments/dashboard — Get Stripe Express dashboard login link
 router.get(
   '/dashboard',

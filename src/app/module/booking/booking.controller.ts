@@ -15,16 +15,29 @@ const createBooking = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllBookings = catchAsync(async (req: Request, res: Response) => {
+  const result = await bookingService.getAllBookingsFromDB(req.query);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Bookings fetched successfully',
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
 const getTraderBookings = catchAsync(async (req: Request, res: Response) => {
   const traderId = req.params.traderId as string;
-  const date = req.query.date as string | undefined;
-
-  const result = await bookingService.getTraderBookingsFromDB(traderId, date);
+  const result = await bookingService.getTraderBookingsFromDB(
+    traderId,
+    req.query,
+  );
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Trader bookings fetched successfully',
-    data: result,
+    meta: result.meta,
+    data: result.data,
   });
 });
 
@@ -65,9 +78,9 @@ const getBookingById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 export const bookingController = {
   createBooking,
+  getAllBookings,
   getTraderBookings,
   updateBookingStatus,
   getBookingById,

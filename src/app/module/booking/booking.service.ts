@@ -3,6 +3,7 @@ import prisma from "../../../lib/prisma.js";
 import ApiError from "../../../errors/ApiError.js";
 import { BookingStatus } from "../../../generated/prisma/client.js";
 import { TCreateBooking } from "./booking.validation.js";
+import QueryBuilder from "../../../utils/queryBuilder.js";
 
 const createBookingInDB = async (payload: TCreateBooking) => {
   // 1. Validate Trader Exists in TraderProfile table (checks TraderProfile ID or User ID)
@@ -85,7 +86,42 @@ const createBookingInDB = async (payload: TCreateBooking) => {
   return newBooking;
 };
 
-const getTraderBookingsFromDB = async (traderIdInput: string, date?: string) => {
+const getAllBookingsFromDB = async (query: Record<string, unknown> = {}) => {
+  const queryBuilder = new QueryBuilder(query)
+    .search(['customerName', 'customerEmail', 'customerPhone'])
+    .filter(['status', 'originChannel', 'traderId'])
+    .dateRange('startTime', 'startDate', 'endDate')
+    .numericRange('totalAmount', 'minAmount', 'maxAmount')
+    .sort('startTime', 'desc')
+    .paginate();
+
+  const where = queryBuilder.getWhere();
+  const orderBy = queryBuilder.getOrderBy();
+  const { skip, take } = queryBuilder.getPaginationParams();
+
+  const [data, total] = await Promise.all([
+    prisma.booking.findMany({
+      where,
+      orderBy,
+      skip,
+      take,
+      include: {
+        trader: true,
+        payment: true,
+      },
+    }),
+    prisma.booking.count({ where }),
+  ]);
+
+  const meta = queryBuilder.getMeta(total);
+
+  return { meta, data };
+};
+
+const getTraderBookingsFromDB = async (
+  traderIdInput: string,
+  queryInput?: Record<string, unknown> | string,
+) => {
   // 1. Validate Trader Exists in TraderProfile table (by TraderProfile ID or User ID)
   let trader = await prisma.traderProfile.findUnique({
     where: { id: traderIdInput },
@@ -106,33 +142,46 @@ const getTraderBookingsFromDB = async (traderIdInput: string, date?: string) => 
 
   const traderId = trader.id;
 
-  // 2. Query bookings with optional date filtering
-  const whereClause: Record<string, any> = { traderId };
-
-  if (date) {
-    const parsedDate = new Date(date);
-    if (!isNaN(parsedDate.getTime())) {
-      const startOfDay = new Date(parsedDate);
-      startOfDay.setUTCHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(parsedDate);
-      endOfDay.setUTCHours(23, 59, 59, 999);
-
-      whereClause.startTime = {
-        gte: startOfDay,
-        lte: endOfDay,
-      };
+  let query: Record<string, unknown> = {};
+  if (typeof queryInput === "string") {
+    query = { startDate: queryInput, endDate: queryInput };
+  } else if (queryInput && typeof queryInput === "object") {
+    query = { ...queryInput };
+    if (query.date && typeof query.date === "string") {
+      query.startDate = query.startDate || query.date;
+      query.endDate = query.endDate || query.date;
     }
   }
 
-  const bookings = await prisma.booking.findMany({
-    where: whereClause,
-    orderBy: {
-      startTime: "asc",
-    },
-  });
+  const queryBuilder = new QueryBuilder(query)
+    .addWhereCondition({ traderId })
+    .search(['customerName', 'customerEmail', 'customerPhone'])
+    .filter(['status', 'originChannel'])
+    .dateRange('startTime', 'startDate', 'endDate')
+    .numericRange('totalAmount', 'minAmount', 'maxAmount')
+    .sort('startTime', 'asc')
+    .paginate();
 
-  return bookings;
+  const where = queryBuilder.getWhere();
+  const orderBy = queryBuilder.getOrderBy();
+  const { skip, take } = queryBuilder.getPaginationParams();
+
+  const [data, total] = await Promise.all([
+    prisma.booking.findMany({
+      where,
+      orderBy,
+      skip,
+      take,
+      include: {
+        payment: true,
+      },
+    }),
+    prisma.booking.count({ where }),
+  ]);
+
+  const meta = queryBuilder.getMeta(total);
+
+  return { meta, data };
 };
 
 const updateBookingStatusInDB = async (
@@ -185,9 +234,11 @@ const getBookingByIdFromDB = async (bookingId: string) => {
 
 export const bookingService = {
   createBookingInDB,
+  getAllBookingsFromDB,
   getTraderBookingsFromDB,
   updateBookingStatusInDB,
   getBookingByIdFromDB,
 };
 
 export default bookingService;
+

@@ -3,6 +3,7 @@ import ApiError from '../../../errors/ApiError.js';
 import prisma from '../../../lib/prisma.js';
 import { auth } from '../../../lib/auth.js';
 import { sendEmail, sendVerificationOtpEmail } from '../../../utils/sendEmail.js';
+import QueryBuilder from '../../../utils/queryBuilder.js';
 
 const resendOtpIntoDB = async (email: string): Promise<void> => {
   // 1. Verify user exists in database
@@ -79,9 +80,50 @@ const verifyEmailInDB = async (email: string, otp: string): Promise<void> => {
   }
 };
 
+const getAllTradersFromDB = async (query: Record<string, unknown> = {}) => {
+  const queryBuilder = new QueryBuilder(query)
+    .search(['displayName', 'bio', 'user.name', 'user.email', 'user.phone'])
+    .filter(['businessId'])
+    .dateRange('createdAt', 'startDate', 'endDate')
+    .sort('createdAt', 'desc')
+    .paginate();
+
+  const where = queryBuilder.getWhere();
+  const orderBy = queryBuilder.getOrderBy();
+  const { skip, take } = queryBuilder.getPaginationParams();
+
+  const [data, total] = await Promise.all([
+    prisma.traderProfile.findMany({
+      where,
+      orderBy,
+      skip,
+      take,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            image: true,
+            role: true,
+          },
+        },
+        dailyWorkAreas: true,
+      },
+    }),
+    prisma.traderProfile.count({ where }),
+  ]);
+
+  const meta = queryBuilder.getMeta(total);
+
+  return { meta, data };
+};
+
 export const authService = {
   resendOtpIntoDB,
   verifyEmailInDB,
+  getAllTradersFromDB,
   sendEmail,
   sendVerificationOtpEmail,
 };

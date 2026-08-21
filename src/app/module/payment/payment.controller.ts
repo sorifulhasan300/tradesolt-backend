@@ -58,10 +58,26 @@ const getStripeDashboard = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllPayments = catchAsync(async (req: Request, res: Response) => {
+  const result = await paymentService.getAllPaymentsFromDB(
+    req.query,
+    req.user,
+  );
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Payments fetched successfully',
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
 export const paymentController = {
   onboardTrader,
   createPaymentIntent,
   getStripeDashboard,
+  getAllPayments,
 };
 
 export default paymentController;

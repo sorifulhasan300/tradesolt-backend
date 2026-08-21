@@ -4,6 +4,7 @@ import prisma from '../../../lib/prisma.js';
 import stripe from '../../../lib/stripe.js';
 import ApiError from '../../../errors/ApiError.js';
 import envVars from '../../../config/env.config.js';
+import QueryBuilder from '../../../utils/queryBuilder.js';
 
 /**
  * Creates a Stripe Connect Express account for a trader and returns an onboarding link.
@@ -289,11 +290,67 @@ const getStripeConnectDashboardLink = async (userId: string) => {
   return { url: loginLink.url };
 };
 
+/**
+ * Fetches paginated payments list with search, filter, date range, and sorting.
+ */
+const getAllPaymentsFromDB = async (
+  query: Record<string, unknown> = {},
+  user?: { id?: string; role?: string },
+) => {
+  const queryBuilder = new QueryBuilder(query)
+    .search([
+      'stripePaymentIntentId',
+      'stripeChargeId',
+      'stripeTransferId',
+      'booking.customerName',
+      'booking.customerEmail',
+    ])
+    .filter(['status', 'bookingId'])
+    .dateRange('createdAt', 'startDate', 'endDate')
+    .numericRange('amountTotal', 'minAmount', 'maxAmount')
+    .sort('createdAt', 'desc')
+    .paginate();
+
+  // If user is a TRADER, restrict to payments for their bookings
+  if (user && user.id && user.role === 'TRADER') {
+    const traderProfile = await prisma.traderProfile.findUnique({
+      where: { userId: user.id },
+    });
+    if (traderProfile) {
+      queryBuilder.addWhereCondition({
+        booking: { traderId: traderProfile.id },
+      });
+    }
+  }
+
+  const where = queryBuilder.getWhere();
+  const orderBy = queryBuilder.getOrderBy();
+  const { skip, take } = queryBuilder.getPaginationParams();
+
+  const [data, total] = await Promise.all([
+    prisma.payment.findMany({
+      where,
+      orderBy,
+      skip,
+      take,
+      include: {
+        booking: true,
+      },
+    }),
+    prisma.payment.count({ where }),
+  ]);
+
+  const meta = queryBuilder.getMeta(total);
+
+  return { meta, data };
+};
+
 export const paymentService = {
   createStripeConnectAccount,
   createPaymentIntentForBooking,
   handleStripeWebhook,
   getStripeConnectDashboardLink,
+  getAllPaymentsFromDB,
 };
 
 export default paymentService;
