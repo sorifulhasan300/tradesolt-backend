@@ -22,6 +22,7 @@ export const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z
     .string({ message: 'STRIPE_WEBHOOK_SECRET is required' })
     .min(1, 'STRIPE_WEBHOOK_SECRET cannot be empty'),
+  STRIPE_PLATFORM_FEE_PERCENT: z.coerce.number().min(0).max(100).default(10),
   CLIENT_URL: z
     .string({ message: 'CLIENT_URL is required' })
     .url('CLIENT_URL must be a valid URL'),
