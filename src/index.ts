@@ -39,7 +39,12 @@ app.post('/api/v1/payments/webhook', express.raw({ type: 'application/json' }), 
 });
 
 // Global Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: [envVars.CLIENT_URL, "http://localhost:3000", "http://127.0.0.1:3000"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(auditFailureLogger);
 
