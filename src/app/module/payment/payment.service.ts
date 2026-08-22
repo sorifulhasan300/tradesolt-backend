@@ -345,12 +345,54 @@ const getAllPaymentsFromDB = async (
   return { meta, data };
 };
 
+const getTraderStripeAccountStatus = async (traderIdInput?: string) => {
+  if (!traderIdInput) {
+    return {
+      accountId: null,
+      isOnboarded: false,
+      chargesEnabled: false,
+      payoutsEnabled: false,
+      detailsSubmitted: false,
+    };
+  }
+
+  let traderProfile = await prisma.traderProfile.findUnique({
+    where: { id: traderIdInput },
+  });
+
+  if (!traderProfile) {
+    traderProfile = await prisma.traderProfile.findUnique({
+      where: { userId: traderIdInput },
+    });
+  }
+
+  if (!traderProfile || !traderProfile.stripeAccountId) {
+    return {
+      accountId: null,
+      isOnboarded: false,
+      chargesEnabled: false,
+      payoutsEnabled: false,
+      detailsSubmitted: false,
+    };
+  }
+
+  return {
+    accountId: traderProfile.stripeAccountId,
+    isOnboarded: true,
+    chargesEnabled: true,
+    payoutsEnabled: true,
+    detailsSubmitted: true,
+  };
+};
+
 export const paymentService = {
   createStripeConnectAccount,
   createPaymentIntentForBooking,
   handleStripeWebhook,
   getStripeConnectDashboardLink,
   getAllPaymentsFromDB,
+  getTraderStripeAccountStatus,
 };
 
 export default paymentService;
+

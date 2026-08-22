@@ -200,12 +200,71 @@ const getBookingByIdFromDB = async (bookingId: string) => {
   return booking;
 };
 
+const getAvailableSlotsFromDB = async (
+  traderIdInput: string,
+  dateInput?: string,
+) => {
+  let trader = await prisma.traderProfile.findUnique({
+    where: { id: traderIdInput },
+  });
+
+  if (!trader) {
+    trader = await prisma.traderProfile.findUnique({
+      where: { userId: traderIdInput },
+    });
+  }
+
+  const targetDate = dateInput ? new Date(dateInput) : new Date();
+  const dateStr = targetDate.toISOString().split('T')[0];
+
+  const slotHours = [8, 10, 13, 15];
+  const slots = slotHours.map((hour) => {
+    const start = new Date(`${dateStr}T${String(hour).padStart(2, '0')}:00:00.000Z`);
+    const end = new Date(start.getTime() + 2 * 3600 * 1000);
+    const bufferEnd = new Date(end.getTime() + 30 * 60 * 1000);
+    return {
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+      bufferEndTime: bufferEnd.toISOString(),
+      available: true,
+    };
+  });
+
+  if (trader) {
+    const existingBookings = await prisma.booking.findMany({
+      where: {
+        traderId: trader.id,
+        status: { not: BookingStatus.CANCELLED },
+      },
+    });
+
+    for (const slot of slots) {
+      const slotStartMs = new Date(slot.startTime).getTime();
+      const slotEndMs = new Date(slot.endTime).getTime();
+
+      for (const booking of existingBookings) {
+        const bStartMs = booking.startTime.getTime();
+        const bEndWithBufMs = booking.endTime.getTime() + booking.bufferMinutes * 60 * 1000;
+
+        if (bStartMs < slotEndMs && slotStartMs < bEndWithBufMs) {
+          slot.available = false;
+          break;
+        }
+      }
+    }
+  }
+
+  return slots;
+};
+
 export const bookingService = {
   createBookingInDB,
   getAllBookingsFromDB,
   getTraderBookingsFromDB,
   updateBookingStatusInDB,
   getBookingByIdFromDB,
+  getAvailableSlotsFromDB,
 };
 
 export default bookingService;
+

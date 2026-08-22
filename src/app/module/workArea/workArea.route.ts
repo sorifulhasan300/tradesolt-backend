@@ -14,5 +14,7 @@ router.post(
   workAreaController.setWorkArea,
 );
 
+router.get("/:traderId", workAreaController.getWorkArea);
+
 export const workAreaRoutes: Router = router;
 export default router;

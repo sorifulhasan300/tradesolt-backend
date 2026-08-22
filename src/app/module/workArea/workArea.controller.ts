@@ -22,8 +22,24 @@ const setWorkArea = catchAsync(async (req: Request, res: Response): Promise<void
   });
 });
 
+const getWorkArea = catchAsync(async (req: Request, res: Response): Promise<void> => {
+  const traderId = req.params.traderId as string;
+  const date = req.query.date as string | undefined;
+
+  const result = await workAreaService.getDailyWorkAreaFromDB(traderId, date);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Trader daily work area fetched successfully',
+    data: result,
+  });
+});
+
 export const workAreaController = {
   setWorkArea,
+  getWorkArea,
 };
 
 export default workAreaController;
+

@@ -22,13 +22,6 @@ router.post(
   paymentController.createPaymentIntent,
 );
 
-// GET /api/v1/payments — Fetch paginated list of payments (for traders or admins)
-router.get(
-  '/',
-  checkAuth(),
-  paymentController.getAllPayments,
-);
-
 // GET /api/v1/payments/dashboard — Get Stripe Express dashboard login link
 router.get(
   '/dashboard',
@@ -36,5 +29,26 @@ router.get(
   paymentController.getStripeDashboard,
 );
 
+// GET /api/v1/payments/status — Fetch trader Stripe account status
+router.get(
+  '/status',
+  checkAuth(),
+  paymentController.getAccountStatus,
+);
+
+router.get(
+  '/status/:traderId',
+  paymentController.getAccountStatus,
+);
+
+// GET /api/v1/payments — Fetch paginated list of payments (for traders or admins)
+router.get(
+  '/',
+  checkAuth(),
+  paymentController.getAllPayments,
+);
+
 export const paymentRoutes: Router = router;
 export default router;
+
+

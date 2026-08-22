@@ -73,11 +73,26 @@ const getAllPayments = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAccountStatus = catchAsync(async (req: Request, res: Response) => {
+  const traderId = (req.params.traderId as string) || req.user?.id;
+
+  const result = await paymentService.getTraderStripeAccountStatus(traderId);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Stripe account status fetched successfully',
+    data: result,
+  });
+});
+
 export const paymentController = {
   onboardTrader,
   createPaymentIntent,
   getStripeDashboard,
   getAllPayments,
+  getAccountStatus,
 };
 
 export default paymentController;
+

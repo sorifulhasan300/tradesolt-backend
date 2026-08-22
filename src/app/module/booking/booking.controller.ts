@@ -76,12 +76,26 @@ const getBookingById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAvailableSlots = catchAsync(async (req: Request, res: Response) => {
+  const traderId = req.params.traderId as string;
+  const date = req.query.date as string | undefined;
+  const result = await bookingService.getAvailableSlotsFromDB(traderId, date);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Available slots fetched successfully",
+    data: result,
+  });
+});
+
 export const bookingController = {
   createBooking,
   getAllBookings,
   getTraderBookingsById,
   updateBookingStatus,
   getBookingById,
+  getAvailableSlots,
 };
 
 export default bookingController;
+

@@ -64,8 +64,72 @@ const setDailyWorkAreaInDB = async (userId: string, payload: TSetWorkArea) => {
   return workArea;
 };
 
+const getDailyWorkAreaFromDB = async (traderIdInput: string, dateInput?: string) => {
+  let trader = await prisma.traderProfile.findUnique({
+    where: { id: traderIdInput },
+  });
+
+  if (!trader) {
+    trader = await prisma.traderProfile.findUnique({
+      where: { userId: traderIdInput },
+    });
+  }
+
+  if (!trader) {
+    return {
+      traderId: traderIdInput,
+      postcodeOrCity: 'Central London',
+      radiusMiles: 15,
+      date: dateInput || new Date().toISOString().split('T')[0],
+    };
+  }
+
+  const targetDate = dateInput ? new Date(dateInput) : new Date();
+
+  const workArea = await prisma.dailyWorkArea.findFirst({
+    where: {
+      traderId: trader.id,
+      date: targetDate,
+    },
+  });
+
+  if (!workArea) {
+    const latestWorkArea = await prisma.dailyWorkArea.findFirst({
+      where: { traderId: trader.id },
+      orderBy: { date: 'desc' },
+    });
+
+    if (latestWorkArea) {
+      return {
+        id: latestWorkArea.id,
+        traderId: trader.id,
+        postcodeOrCity: latestWorkArea.zoneName,
+        radiusMiles: 15,
+        date: dateInput || targetDate.toISOString().split('T')[0],
+      };
+    }
+
+    return {
+      traderId: trader.id,
+      postcodeOrCity: 'Central London',
+      radiusMiles: 15,
+      date: dateInput || targetDate.toISOString().split('T')[0],
+    };
+  }
+
+  return {
+    id: workArea.id,
+    traderId: trader.id,
+    postcodeOrCity: workArea.zoneName,
+    radiusMiles: 15,
+    date: workArea.date.toISOString().split('T')[0],
+  };
+};
+
 export const workAreaService = {
   setDailyWorkAreaInDB,
+  getDailyWorkAreaFromDB,
 };
 
 export default workAreaService;
+

@@ -25,6 +25,8 @@ router.get(
   bookingController.getTraderBookingsById,
 );
 
+router.get("/slots/:traderId", bookingController.getAvailableSlots);
+
 router.get("/:bookingId", checkAuth(), bookingController.getBookingById);
 
 router.patch(
