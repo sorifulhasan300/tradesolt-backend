@@ -88,11 +88,11 @@ const createBookingInDB = async (payload: TCreateBooking) => {
 
 const getAllBookingsFromDB = async (query: Record<string, unknown> = {}) => {
   const queryBuilder = new QueryBuilder(query)
-    .search(['customerName', 'customerEmail', 'customerPhone'])
-    .filter(['status', 'originChannel', 'traderId'])
-    .dateRange('startTime', 'startDate', 'endDate')
-    .numericRange('totalAmount', 'minAmount', 'maxAmount')
-    .sort('startTime', 'desc')
+    .search(["customerName", "customerEmail", "customerPhone"])
+    .filter(["status", "originChannel", "traderId"])
+    .dateRange("startTime", "startDate", "endDate")
+    .numericRange("totalAmount", "minAmount", "maxAmount")
+    .sort("startTime", "desc")
     .paginate();
 
   const where = queryBuilder.getWhere();
@@ -142,46 +142,14 @@ const getTraderBookingsFromDB = async (
 
   const traderId = trader.id;
 
-  let query: Record<string, unknown> = {};
-  if (typeof queryInput === "string") {
-    query = { startDate: queryInput, endDate: queryInput };
-  } else if (queryInput && typeof queryInput === "object") {
-    query = { ...queryInput };
-    if (query.date && typeof query.date === "string") {
-      query.startDate = query.startDate || query.date;
-      query.endDate = query.endDate || query.date;
-    }
-  }
+  const data = await prisma.booking.findMany({
+    where: { traderId },
+    include: {
+      payment: true,
+    },
+  });
 
-  const queryBuilder = new QueryBuilder(query)
-    .addWhereCondition({ traderId })
-    .search(['customerName', 'customerEmail', 'customerPhone'])
-    .filter(['status', 'originChannel'])
-    .dateRange('startTime', 'startDate', 'endDate')
-    .numericRange('totalAmount', 'minAmount', 'maxAmount')
-    .sort('startTime', 'asc')
-    .paginate();
-
-  const where = queryBuilder.getWhere();
-  const orderBy = queryBuilder.getOrderBy();
-  const { skip, take } = queryBuilder.getPaginationParams();
-
-  const [data, total] = await Promise.all([
-    prisma.booking.findMany({
-      where,
-      orderBy,
-      skip,
-      take,
-      include: {
-        payment: true,
-      },
-    }),
-    prisma.booking.count({ where }),
-  ]);
-
-  const meta = queryBuilder.getMeta(total);
-
-  return { meta, data };
+  return data;
 };
 
 const updateBookingStatusInDB = async (
@@ -241,4 +209,3 @@ export const bookingService = {
 };
 
 export default bookingService;
-
