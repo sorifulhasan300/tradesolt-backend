@@ -119,10 +119,10 @@ const createPaymentIntentForBooking = async (bookingId: string) => {
     );
   }
 
-  if (booking.status !== 'CONFIRMED') {
+  if (booking.status !== 'CONFIRMED' && booking.status !== 'PENDING') {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Booking must be confirmed before payment',
+      'Booking must be pending or confirmed before payment',
     );
   }
 
@@ -164,9 +164,46 @@ const createPaymentIntentForBooking = async (bookingId: string) => {
   );
   const traderPayout = booking.totalAmount - platformFee;
 
+  // Create Stripe Checkout Session for Hosted Redirect
+  let checkoutUrl: string | null = null;
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: `TradeSlot Deposit: ${booking.customerName} Service`,
+              description: `Booking deposit for ${booking.trader.displayName || 'Trade Specialist'}`,
+            },
+            unit_amount: booking.totalAmount > 0 ? booking.totalAmount : 5000,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      payment_intent_data: {
+        application_fee_amount: platformFee,
+        transfer_data: {
+          destination: booking.trader.stripeAccountId,
+        },
+        metadata: {
+          bookingId: booking.id,
+          traderId: booking.traderId,
+        },
+      },
+      success_url: `${envVars.CLIENT_URL}/customer/dashboard?booking_id=${booking.id}&payment=success`,
+      cancel_url: `${envVars.CLIENT_URL}/book/${booking.traderId}?payment=cancelled`,
+    });
+    checkoutUrl = session.url;
+  } catch (checkoutErr: any) {
+    console.warn('Checkout Session creation warning:', checkoutErr?.message);
+  }
+
   // Create Stripe PaymentIntent with destination charge
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: booking.totalAmount,
+    amount: booking.totalAmount > 0 ? booking.totalAmount : 5000,
     currency: 'gbp',
     application_fee_amount: platformFee,
     transfer_data: {
@@ -183,14 +220,14 @@ const createPaymentIntentForBooking = async (bookingId: string) => {
     data: {
       bookingId: booking.id,
       stripePaymentIntentId: paymentIntent.id,
-      amountTotal: booking.totalAmount,
+      amountTotal: booking.totalAmount > 0 ? booking.totalAmount : 5000,
       platformFee,
       traderPayoutAmount: traderPayout,
       status: 'PENDING',
     },
   });
 
-  return { payment, clientSecret: paymentIntent.client_secret };
+  return { payment, clientSecret: paymentIntent.client_secret, checkoutUrl };
 };
 
 /**
@@ -199,6 +236,19 @@ const createPaymentIntentForBooking = async (bookingId: string) => {
  */
 const handleStripeWebhook = async (event: Stripe.Event) => {
   switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const bookingId = session.metadata?.bookingId;
+      if (bookingId) {
+        await prisma.booking.update({
+          where: { id: bookingId },
+          data: { status: 'CONFIRMED' },
+        });
+        console.log(`Checkout session completed for booking: ${bookingId}`);
+      }
+      break;
+    }
+
     case 'payment_intent.succeeded': {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
 

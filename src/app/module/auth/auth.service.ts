@@ -88,6 +88,27 @@ const getAllTradersFromDB = async (query: Record<string, unknown> = {}) => {
     .sort('createdAt', 'desc')
     .paginate();
 
+  if (query.postcodeOrCity) {
+    const zoneTerm = String(query.postcodeOrCity).trim();
+    queryBuilder.addWhereCondition({
+      dailyWorkAreas: {
+        some: {
+          zoneName: { contains: zoneTerm, mode: 'insensitive' },
+        },
+      },
+    });
+  }
+
+  if (query.trade) {
+    const tradeTerm = String(query.trade).trim();
+    queryBuilder.addWhereCondition({
+      OR: [
+        { displayName: { contains: tradeTerm, mode: 'insensitive' } },
+        { bio: { contains: tradeTerm, mode: 'insensitive' } },
+      ],
+    });
+  }
+
   const where = queryBuilder.getWhere();
   const orderBy = queryBuilder.getOrderBy();
   const { skip, take } = queryBuilder.getPaginationParams();

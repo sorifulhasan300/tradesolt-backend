@@ -120,7 +120,7 @@ const getAllBookingsFromDB = async (query: Record<string, unknown> = {}) => {
 
 const getTraderBookingsFromDB = async (
   traderIdInput: string,
-  queryInput?: Record<string, unknown> | string,
+  query: Record<string, unknown> = {},
 ) => {
   // 1. Validate Trader Exists in TraderProfile table (by TraderProfile ID or User ID)
   let trader = await prisma.traderProfile.findUnique({
@@ -142,14 +142,37 @@ const getTraderBookingsFromDB = async (
 
   const traderId = trader.id;
 
-  const data = await prisma.booking.findMany({
-    where: { traderId },
-    include: {
-      payment: true,
-    },
-  });
+  const queryBuilder = new QueryBuilder(query)
+    .search(["customerName", "customerEmail", "customerPhone"])
+    .filter(["status", "originChannel"])
+    .dateRange("startTime", "startDate", "endDate")
+    .numericRange("totalAmount", "minAmount", "maxAmount")
+    .sort("startTime", "desc")
+    .paginate();
 
-  return data;
+  queryBuilder.addWhereCondition({ traderId });
+
+  const where = queryBuilder.getWhere();
+  const orderBy = queryBuilder.getOrderBy();
+  const { skip, take } = queryBuilder.getPaginationParams();
+
+  const [data, total] = await Promise.all([
+    prisma.booking.findMany({
+      where,
+      orderBy,
+      skip,
+      take,
+      include: {
+        trader: true,
+        payment: true,
+      },
+    }),
+    prisma.booking.count({ where }),
+  ]);
+
+  const meta = queryBuilder.getMeta(total);
+
+  return { meta, data };
 };
 
 const updateBookingStatusInDB = async (

@@ -29,12 +29,16 @@ const getAllBookings = catchAsync(async (req: Request, res: Response) => {
 const getTraderBookingsById = catchAsync(
   async (req: Request, res: Response) => {
     const traderId = req.params.traderId as string;
-    const result = await bookingService.getTraderBookingsFromDB(traderId);
+    const result = await bookingService.getTraderBookingsFromDB(
+      traderId,
+      req.query,
+    );
     sendResponse(res, {
       statusCode: StatusCodes.OK,
       success: true,
       message: "Trader bookings fetched successfully",
-      data: result,
+      meta: result.meta,
+      data: result.data,
     });
   },
 );
