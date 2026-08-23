@@ -78,10 +78,21 @@ const updateUserStatusInDB = async (
 const updateUserRoleInDB = async (userId: string, role: Role) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
+    include: { traderProfile: true },
   });
 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (role === "TRADER" && !user.traderProfile) {
+    await prisma.traderProfile.create({
+      data: {
+        userId: user.id,
+        displayName: user.name || user.email.split("@")[0] || "Trader Pro",
+        bio: "Verified TradeSlot Professional",
+      },
+    });
   }
 
   const updatedUser = await prisma.user.update({

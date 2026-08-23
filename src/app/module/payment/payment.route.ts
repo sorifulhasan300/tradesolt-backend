@@ -1,22 +1,22 @@
-import { Router } from 'express';
-import validationMiddleware from '../../../middleware/validate.middleware.js';
-import { checkAuth } from '../../../middleware/auth.middleware.js';
-import { UserRoles } from '../../../types/role.types.js';
-import { createPaymentIntentSchema } from './payment.validation.js';
-import { paymentController } from './payment.controller.js';
+import { Router } from "express";
+import validationMiddleware from "../../../middleware/validate.middleware.js";
+import { checkAuth } from "../../../middleware/auth.middleware.js";
+import { UserRoles } from "../../../types/role.types.js";
+import { createPaymentIntentSchema } from "./payment.validation.js";
+import { paymentController } from "./payment.controller.js";
 
 const router: Router = Router();
 
 // POST /api/v1/payments/onboard — Trader creates Stripe Express account & gets onboarding link
 router.post(
-  '/onboard',
+  "/onboard",
   checkAuth(UserRoles.TRADER),
   paymentController.onboardTrader,
 );
 
 // POST /api/v1/payments/create-intent — Create PaymentIntent for a confirmed booking
 router.post(
-  '/create-intent',
+  "/create-intent",
   checkAuth(),
   validationMiddleware(createPaymentIntentSchema),
   paymentController.createPaymentIntent,
@@ -24,31 +24,18 @@ router.post(
 
 // GET /api/v1/payments/dashboard — Get Stripe Express dashboard login link
 router.get(
-  '/dashboard',
+  "/dashboard",
   checkAuth(UserRoles.TRADER),
   paymentController.getStripeDashboard,
 );
 
 // GET /api/v1/payments/status — Fetch trader Stripe account status
-router.get(
-  '/status',
-  checkAuth(),
-  paymentController.getAccountStatus,
-);
+router.get("/status", checkAuth(), paymentController.getAccountStatus);
 
-router.get(
-  '/status/:traderId',
-  paymentController.getAccountStatus,
-);
+router.get("/status/:traderId", paymentController.getAccountStatus);
 
 // GET /api/v1/payments — Fetch paginated list of payments (for traders or admins)
-router.get(
-  '/',
-  checkAuth(),
-  paymentController.getAllPayments,
-);
+router.get("/", checkAuth(), paymentController.getAllPayments);
 
 export const paymentRoutes: Router = router;
 export default router;
-
-
