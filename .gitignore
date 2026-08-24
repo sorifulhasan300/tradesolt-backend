@@ -1,6 +1,5 @@
 node_modules
 # Keep environment variables out of version control
-.env
 
 /generated/prisma
 .agents
@@ -9,3 +8,4 @@ dist/
 src/generated/prisma    
 prisma/migrations
 .vercel
+config.bat
