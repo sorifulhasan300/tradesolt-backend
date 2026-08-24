@@ -29,11 +29,26 @@ export const envSchema = z.object({
   BACKEND_URL: z
     .string({ message: 'BACKEND_URL is required' })
     .url('BACKEND_URL must be a valid URL'),
-  EMAIL_USER: z.string().optional().default(''),
-  EMAIL_PASS: z.string().optional().default(''),
-  EMAIL_HOST: z.string().optional().default('smtp.gmail.com'),
-  EMAIL_PORT: z.coerce.number().optional().default(587),
-  EMAIL_FROM: z.string().optional().default('TradeSlot <no-reply@tradeslot.com>'),
+  EMAIL_USER: z.preprocess(
+    (val) => (val !== undefined && val !== null ? String(val) : process.env.EMAIL_USER || ''),
+    z.string().default('')
+  ),
+  EMAIL_PASS: z.preprocess(
+    (val) => (val !== undefined && val !== null ? String(val) : process.env.EMAIL_PASS || ''),
+    z.string().default('')
+  ),
+  EMAIL_HOST: z.preprocess(
+    (val) => (val && String(val).trim() !== '' ? String(val) : process.env.EMAIL_HOST || 'smtp.gmail.com'),
+    z.string().default('smtp.gmail.com')
+  ),
+  EMAIL_PORT: z.preprocess(
+    (val) => (val && !isNaN(Number(val)) && Number(val) !== 0 ? Number(val) : Number(process.env.EMAIL_PORT) || 587),
+    z.number().default(587)
+  ),
+  EMAIL_FROM: z.preprocess(
+    (val) => (val && String(val).trim() !== '' ? String(val) : process.env.EMAIL_FROM || '"TradeSlot" <no-reply@tradeslot.com>'),
+    z.string().default('"TradeSlot" <no-reply@tradeslot.com>')
+  ),
 });
 
 

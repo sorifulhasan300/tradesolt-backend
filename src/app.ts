@@ -53,6 +53,7 @@ app.use(
   cors({
     origin: [
       envVars.CLIENT_URL,
+      "https://tradeslot-frontend.vercel.app",
       "http://localhost:3000",
       "http://127.0.0.1:3000",
     ],

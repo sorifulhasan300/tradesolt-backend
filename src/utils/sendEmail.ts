@@ -10,28 +10,43 @@ export interface ISendEmailPayload {
 
 export const sendEmail = async ({ to, subject, text, html }: ISendEmailPayload): Promise<void> => {
   if (!envVars.EMAIL_USER || !envVars.EMAIL_PASS) {
-    console.log('----------------------------------------------------');
-    console.log('[Email Service Simulation (EMAIL_USER / EMAIL_PASS not set in .env)]');
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    if (text) console.log(`Body (Text): ${text}`);
-    console.log('----------------------------------------------------');
+    console.warn('----------------------------------------------------');
+    console.warn('[Email Warning]: EMAIL_USER or EMAIL_PASS environment variable is missing.');
+    console.warn(`Simulated OTP sending for ${to}:`);
+    if (text) console.warn(text);
+    console.warn('----------------------------------------------------');
+    if (envVars.NODE_ENV === 'production') {
+      throw new Error('Email credentials (EMAIL_USER / EMAIL_PASS) are not configured on production server.');
+    }
     return;
   }
 
   try {
+    const isSecurePort = Number(envVars.EMAIL_PORT) === 465;
+
+    // Align sender format to match authenticated Gmail account to prevent SPF/DKIM rejection or Gmail 553 error
+    const sender = (envVars.EMAIL_HOST?.includes('gmail') && envVars.EMAIL_USER)
+      ? `"TradeSlot" <${envVars.EMAIL_USER}>`
+      : (envVars.EMAIL_FROM || `"TradeSlot" <${envVars.EMAIL_USER}>`);
+
     const transporter = nodemailer.createTransport({
       host: envVars.EMAIL_HOST || 'smtp.gmail.com',
-      port: envVars.EMAIL_PORT || 587,
-      secure: envVars.EMAIL_PORT === 465,
+      port: Number(envVars.EMAIL_PORT) || 587,
+      secure: isSecurePort,
       auth: {
         user: envVars.EMAIL_USER,
         pass: envVars.EMAIL_PASS,
       },
+      connectionTimeout: 10000, // 10s connection timeout for Vercel serverless
+      greetingTimeout: 10000,   // 10s greeting timeout
+      socketTimeout: 15000,     // 15s socket timeout
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
 
     const info = await transporter.sendMail({
-      from: envVars.EMAIL_FROM || `"TradeSlot" <${envVars.EMAIL_USER}>`,
+      from: sender,
       to,
       subject,
       text,
@@ -41,12 +56,7 @@ export const sendEmail = async ({ to, subject, text, html }: ISendEmailPayload):
     console.log(`[Email Sent Successfully] MessageID: ${info.messageId} | To: ${to}`);
   } catch (error: any) {
     console.error(`[Email Sending Error]:`, error?.message || error);
-    console.log('----------------------------------------------------');
-    console.log(`[Fallback Console Output]`);
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    if (text) console.log(`Body (Text): ${text}`);
-    console.log('----------------------------------------------------');
+    throw new Error(`Email delivery failed: ${error?.message || 'SMTP server rejected request'}`);
   }
 };
 
